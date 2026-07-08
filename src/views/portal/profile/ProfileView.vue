@@ -145,12 +145,8 @@ function statusVariant(status: WorkExperience['status']) {
             <Progress :model-value="portal.user.value.profileProgress" class="h-3" />
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-2">
-            <Button class="justify-start gap-2" type="button">
-              <RefreshCw class="h-4 w-4" />
-              Importar experiencia
-            </Button>
-            <Button class="justify-start gap-2" variant="outline" type="button" @click="portal.navigate('cv')">
+          <div class="flex justify-end mt-4">
+            <Button class="w-full sm:w-auto gap-2" variant="outline" type="button" @click="portal.navigate('cv')">
               <FileText class="h-4 w-4" />
               Ver CV inteligente
             </Button>

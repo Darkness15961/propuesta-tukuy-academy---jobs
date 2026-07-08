@@ -13,7 +13,7 @@ import {
   Sparkles,
   Upload,
 } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import PortalSection from '@/components/shared/PortalSection.vue'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,90 @@ import { usePortalContext } from '../composables/usePortalContext'
 
 const portal = usePortalContext()
 const router = useRouter()
+
+const showUploadModal = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+const uploadProgress = ref(0)
+const uploadStep = ref('')
+const uploadedFileName = ref('')
+const showSuccessState = ref(false)
+
+const mockExtractedData = {
+  name: 'Carlos Alberto Quispe',
+  birthDate: '1995-04-12',
+  location: 'Lima, Ate',
+  trade: 'Auxiliar de almacén',
+  specialty: 'Almacén y logística',
+  experiences: [
+    {
+      id: 'exp-ai-1',
+      source: 'CV Importado (IA)',
+      project: 'Constructora Galilea (Obra Vial Cusco)',
+      role: 'Asistente de Control de Materiales',
+      location: 'Cusco',
+      period: 'Ene 2024 - Dic 2024',
+      modules: ['Logística'],
+      status: 'Declarado',
+      summary: 'Responsable del ingreso y salida de insumos de acero, cemento y agregados en almacén central. Control de stock operativo con reportes semanales.'
+    },
+    {
+      id: 'exp-ai-2',
+      source: 'CV Importado (IA)',
+      project: 'Consorcio Vial Lima Sur',
+      role: 'Controlador de Inventarios',
+      location: 'Lima',
+      period: 'Mar 2023 - Nov 2023',
+      modules: ['Inventarios'],
+      status: 'Declarado',
+      summary: 'Auditoría física semanal de Kardex, verificación física contra órdenes de compra y gestión de despacho a subcontratistas.'
+    }
+  ],
+  skills: ['Lectura de planos', 'Kardex digital', 'Gestión de almacenes', 'Seguridad en obra']
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0]
+    if (file) {
+      uploadedFileName.value = file.name
+      triggerAiExtraction()
+    }
+  }
+}
+
+function triggerAiExtraction() {
+  showUploadModal.value = true
+  uploading.value = true
+  uploadProgress.value = 0
+  uploadStep.value = 'Extrayendo texto del PDF...'
+  showSuccessState.value = false
+
+  const interval = setInterval(() => {
+    uploadProgress.value += 10
+    if (uploadProgress.value <= 25) {
+      uploadStep.value = 'Extrayendo texto del PDF...'
+    } else if (uploadProgress.value <= 50) {
+      uploadStep.value = 'Analizando estructura semántica...'
+    } else if (uploadProgress.value <= 75) {
+      uploadStep.value = 'Detectando historial laboral...'
+    } else if (uploadProgress.value < 100) {
+      uploadStep.value = 'Mapeando competencias y habilidades...'
+    } else {
+      clearInterval(interval)
+      uploading.value = false
+      showSuccessState.value = true
+      uploadStep.value = '¡Extracción de IA completada!'
+    }
+  }, 250)
+}
+
+function confirmAndRedirect() {
+  localStorage.setItem('parsed_cv_ia', JSON.stringify(mockExtractedData))
+  showUploadModal.value = false
+  router.push('/tukuy-academy/cv/editor')
+}
 
 const metrics = computed(() => [
   {
@@ -149,14 +233,21 @@ const recommendedCourses = computed(() =>
               >
                 Crear mi CV
               </Button>
+              <input
+                type="file"
+                ref="fileInput"
+                accept=".pdf"
+                class="hidden"
+                @change="handleFileChange"
+              />
               <Button
                 class="h-14 rounded-md border-[#B9C7FF] bg-white px-8 text-base font-bold text-[#244DEB] hover:bg-blue-50"
                 variant="outline"
                 type="button"
-                @click="portal.navigate('profile')"
+                @click="fileInput?.click()"
               >
                 <Upload class="h-4 w-4" />
-                Importar mi CV
+                Importar mi CV (PDF)
               </Button>
             </div>
           </div>
@@ -414,5 +505,73 @@ const recommendedCourses = computed(() =>
         </div>
       </div>
     </section>
+    <!-- AI CV Extractor Modal -->
+    <Transition name="fade">
+      <div v-if="showUploadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+        <div class="relative w-full max-w-lg rounded-xl border border-slate-100 bg-white p-6 shadow-2xl transition-all duration-300">
+          <button
+            type="button"
+            class="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+            @click="showUploadModal = false"
+            :disabled="uploading"
+          >
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div class="flex flex-col items-center text-center">
+            <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-[#0B3A78]">
+              <Sparkles class="h-7 w-7 animate-pulse" />
+            </div>
+
+            <h3 class="text-xl font-black text-slate-900">Extracción Inteligente de CV</h3>
+            <p class="mt-2 text-sm text-slate-500">
+              Analizando tu archivo <strong class="text-slate-800">{{ uploadedFileName }}</strong>
+            </p>
+
+            <!-- Loading State -->
+            <div v-if="uploading" class="mt-6 w-full">
+              <div class="relative h-4 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  class="h-full bg-gradient-to-r from-blue-500 to-[#0B3A78] transition-all duration-300"
+                  :style="{ width: `${uploadProgress}%` }"
+                ></div>
+              </div>
+              <p class="mt-3 text-xs font-bold uppercase tracking-wider text-blue-700 animate-pulse">
+                {{ uploadStep }}
+              </p>
+              <p class="mt-1 text-xs text-muted-foreground">{{ uploadProgress }}% procesado</p>
+            </div>
+
+            <!-- Success State -->
+            <div v-else-if="showSuccessState" class="mt-6 w-full">
+              <div class="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4 text-left">
+                <h4 class="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                  <BadgeCheck class="h-5 w-5 text-emerald-600" />
+                  ¡Extracción por IA completada con éxito!
+                </h4>
+                
+                <div class="mt-4 space-y-2 text-xs text-slate-700">
+                  <p><strong>👤 Nombre:</strong> {{ mockExtractedData.name }}</p>
+                  <p><strong>💼 Oficio detectado:</strong> {{ mockExtractedData.trade }}</p>
+                  <p><strong>🎯 Experiencia laboral:</strong> {{ mockExtractedData.experiences.length }} nuevos proyectos encontrados en el PDF.</p>
+                  <p><strong>🛠️ Habilidades detectadas:</strong> {{ mockExtractedData.skills.join(', ') }}</p>
+                </div>
+              </div>
+
+              <div class="mt-6 flex flex-col gap-2">
+                <Button class="w-full bg-[#0B3A78] hover:bg-[#072d5e] text-white" @click="confirmAndRedirect">
+                  Confirmar e Ir al Editor para Fusionar
+                </Button>
+                <Button variant="outline" class="w-full" @click="showUploadModal = false">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </PortalSection>
 </template>

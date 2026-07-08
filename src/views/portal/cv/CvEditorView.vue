@@ -54,22 +54,81 @@ function showNotification(msg: string) {
   }, 3000)
 }
 
-// Import data from SIADEG/Tukuy Obra
+// Import data from SIADEG/Tukuy Obra and merge with AI extracted data if exists
 function importFromPortal() {
-  if (portal.user.value) {
-    name.value = portal.user.value.name
-    trade.value = portal.user.value.trade
-    specialty.value = portal.user.value.specialty
-    location.value = portal.user.value.location
-    birthDate.value = portal.user.value.birthDate ?? '1995-04-12'
-    summary.value = `Auxiliar de almacén verificado con experiencia real en el proyecto "${portal.workExperiences.value[0]?.project ?? 'Tukuy Obra'}". Especialista en control de materiales, Kardex y gestión de asistencia de personal en campo.`
+  // 1. Get portal values
+  let newName = portal.user.value?.name ?? ''
+  let newTrade = portal.user.value?.trade ?? ''
+  let newSpecialty = portal.user.value?.specialty ?? ''
+  let newLocation = portal.user.value?.location ?? ''
+  let newBirthDate = portal.user.value?.birthDate ?? ''
+
+  // 2. Retrieve AI extracted data from localStorage
+  let aiData: any = null
+  const savedAiData = localStorage.getItem('parsed_cv_ia')
+  if (savedAiData) {
+    try {
+      aiData = JSON.parse(savedAiData)
+    } catch (e) {
+      console.error(e)
+    }
   }
-  
-  experiences.value = [
-    ...(portal.workExperiences.value.map(exp => ({ ...exp })) || [])
-  ]
-  
-  showNotification('Datos importados correctamente desde Tukuy Obra y SIADEG')
+
+  // 3. Update personal details favoring AI if portal has defaults or if AI has them
+  if (aiData) {
+    if (aiData.name) newName = aiData.name
+    if (aiData.trade) newTrade = aiData.trade
+    if (aiData.specialty) newSpecialty = aiData.specialty
+    if (aiData.location) newLocation = aiData.location
+    if (aiData.birthDate) newBirthDate = aiData.birthDate
+  }
+
+  name.value = newName
+  trade.value = newTrade
+  specialty.value = newSpecialty
+  location.value = newLocation
+  birthDate.value = newBirthDate
+
+  // 4. Merge Experiences (deduplicating by role & project)
+  const mergedExps: WorkExperience[] = []
+
+  // Add portal experiences first
+  if (portal.workExperiences.value) {
+    portal.workExperiences.value.forEach(exp => {
+      mergedExps.push({ ...exp })
+    })
+  }
+
+  // Add AI experiences if not duplicate
+  if (aiData && aiData.experiences) {
+    aiData.experiences.forEach((aiExp: any) => {
+      const isDuplicate = mergedExps.some(exp => 
+        exp.role.trim().toLowerCase() === aiExp.role.trim().toLowerCase() &&
+        exp.project.trim().toLowerCase() === aiExp.project.trim().toLowerCase()
+      )
+      if (!isDuplicate) {
+        mergedExps.push({ ...aiExp })
+      }
+    })
+  }
+
+  experiences.value = mergedExps
+
+  // 5. Merge Skills (union, no duplicates)
+  const mergedSkills = new Set<string>(skills.value)
+  if (aiData && aiData.skills) {
+    aiData.skills.forEach((s: string) => mergedSkills.add(s))
+  }
+  skills.value = Array.from(mergedSkills)
+
+  // 6. Set professional summary with summary from AI if available or custom enriched message
+  if (aiData) {
+    summary.value = `Auxiliar de almacén verificado con experiencia real en ${portal.workExperiences.value[0]?.project ?? 'Tukuy Obra'} y obras viales. Especialista en control de materiales, Kardex y gestión de asistencia de personal en campo.`
+    showNotification('¡Fusión Exitosa! Datos de Tukuy Obra y CV extraído por la IA integrados (duplicados omitidos).')
+  } else {
+    summary.value = `Auxiliar de almacén verificado con experiencia real en el proyecto "${portal.workExperiences.value[0]?.project ?? 'Tukuy Obra'}". Especialista en control de materiales, Kardex y gestión de asistencia de personal en campo.`
+    showNotification('Datos importados correctamente desde Tukuy Obra y SIADEG')
+  }
 }
 
 // Add new experience
@@ -148,7 +207,7 @@ function previewBirthDate(dateStr?: string) {
       <div class="flex items-center gap-3">
         <Button variant="outline" class="gap-2 border-blue-200 text-[#0B3A78] hover:bg-blue-50" @click="importFromPortal">
           <RefreshCw class="h-4 w-4" />
-          Importar datos de obra
+          Importar experiencia laboral en obras
         </Button>
         <Button class="gap-2 bg-[#0B3A78] hover:bg-[#072d5e] text-white" @click="saveCv">
           <Save class="h-4 w-4" />
