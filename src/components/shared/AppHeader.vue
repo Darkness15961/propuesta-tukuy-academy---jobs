@@ -64,6 +64,17 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const isDropdownOpen = ref(false)
+
+function navigateToCourse(courseId: string) {
+  isDropdownOpen.value = false
+  router.push(`/tukuy-academy/aprendizaje/${courseId}`)
+}
+
+function navigateToLearning() {
+  isDropdownOpen.value = false
+  emit('navigate', 'learning')
+}
 
 const isPortal = computed(() => props.mode === 'portal')
 const profilePhotoSrc = '/img/vistasimg/perfilfoto.png'
@@ -189,7 +200,7 @@ function goToLogin() {
             {{ item.label }}
           </Button>
 
-          <DropdownMenuRoot>
+          <DropdownMenuRoot v-model:open="isDropdownOpen">
             <DropdownMenuTrigger as-child>
               <Button
                 class="shrink-0 gap-1 font-semibold text-muted-foreground hover:text-foreground"
@@ -214,7 +225,7 @@ function goToLogin() {
                 >
                   <div
                     class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
-                    @click="router.push(`/tukuy-academy/aprendizaje/${course.id}`)"
+                    @click="navigateToCourse(course.id)"
                   >
                     <img :src="course.image" :alt="course.title" class="h-12 w-12 rounded-md object-cover shrink-0" />
                     <div class="min-w-0 flex-1 grid gap-1">
@@ -225,17 +236,9 @@ function goToLogin() {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    class="h-8 shrink-0 bg-[#0B3A78] hover:bg-[#072d5e] text-white text-xs px-3 font-semibold rounded"
-                    @click="router.push(`/tukuy-academy/aprendizaje/${course.id}`)"
-                  >
-                    Continuar
-                  </Button>
                 </div>
               </div>
-              <Button class="mt-2 w-full" size="sm" @click="emit('navigate', 'learning')">
+              <Button class="mt-2 w-full" size="sm" @click="navigateToLearning">
                 Ir a Mi aprendizaje
               </Button>
             </DropdownMenuContent>
