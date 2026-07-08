@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { Award, BadgeCheck, CalendarCheck, Download, FileCheck2, QrCode, Search, ShieldCheck } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { 
+  Award, 
+  BadgeCheck, 
+  CalendarCheck, 
+  Download, 
+  FileCheck2, 
+  QrCode, 
+  Search, 
+  ShieldCheck,
+  X,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle
+} from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 
 import PortalSection from '@/components/shared/PortalSection.vue'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import type { Course } from '@/types/academy'
+import { downloadPortfolioPdf } from '@/lib/certificate-pdf'
 import { usePortalContext } from '../composables/usePortalContext'
 
 const portal = usePortalContext()
@@ -108,6 +122,61 @@ function issuedDate(course: Course, index: number) {
   }
   return dates[course.id] ?? `${10 + index} jul 2026`
 }
+
+const isDownloadingPortfolio = ref(false)
+const showVerifyModal = ref(false)
+const verificationCode = ref('')
+const isVerifying = ref(false)
+const verificationResult = ref<{ success: boolean; message: string; certificate?: any } | null>(null)
+
+async function handleDownloadPortfolio() {
+  if (isDownloadingPortfolio.value) return
+  isDownloadingPortfolio.value = true
+  try {
+    if (portal.user.value) {
+      await downloadPortfolioPdf(simulatedCertificates.value, portal.user.value)
+    }
+  } catch (err) {
+    console.error('Error downloading portfolio:', err)
+  } finally {
+    isDownloadingPortfolio.value = false
+  }
+}
+
+function handleVerifyCode() {
+  if (!verificationCode.value.trim()) return
+  isVerifying.value = true
+  verificationResult.value = null
+  
+  setTimeout(() => {
+    isVerifying.value = false
+    const code = verificationCode.value.trim().toUpperCase()
+    const found = simulatedCertificates.value.find(c => {
+      const suffix = c.id.replace('c-', '').padStart(4, '0')
+      return code === `TA-2026-${suffix}` || code === c.id.toUpperCase() || code === `TA-2026-${c.id.replace('c-', '')}`
+    })
+    
+    if (found) {
+      verificationResult.value = {
+        success: true,
+        message: 'Código de certificado verificado exitosamente.',
+        certificate: {
+          title: found.title,
+          category: found.category,
+          code: `TA-2026-${found.id.replace('c-', '').padStart(4, '0')}`,
+          issuedAt: '07 jul 2026',
+          duration: found.duration,
+          mode: found.mode
+        }
+      }
+    } else {
+      verificationResult.value = {
+        success: false,
+        message: 'El código ingresado no corresponde a ningún certificado válido o emitido en la plataforma.'
+      }
+    }
+  }, 1500)
+}
 </script>
 
 <template>
@@ -134,21 +203,24 @@ function issuedDate(course: Course, index: number) {
               <h1 class="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-normal text-[#07152B] sm:text-5xl">
                 Respalda tus habilidades con certificados verificables
               </h1>
-              <p class="mt-5 max-w-2xl text-base leading-7 text-[#41516A]">
-                Reúne constancias, códigos de validación y evidencia de aprendizaje para fortalecer tu CV inteligente y
-                presentar un portafolio profesional ante empresas.
-              </p>
             </div>
 
             <div class="flex flex-wrap gap-3">
-              <Button class="h-14 rounded-md bg-[#244DEB] px-8 text-base font-bold text-white shadow-sm hover:bg-[#173FD0]" type="button">
-                <Download class="h-4 w-4" />
-                Descargar portafolio
+              <Button 
+                class="h-14 rounded-md bg-[#244DEB] px-8 text-base font-bold text-white shadow-sm hover:bg-[#173FD0]" 
+                type="button"
+                :disabled="isDownloadingPortfolio"
+                @click="handleDownloadPortfolio"
+              >
+                <Loader2 v-if="isDownloadingPortfolio" class="h-4 w-4 animate-spin mr-1.5" />
+                <Download v-else class="h-4 w-4" />
+                {{ isDownloadingPortfolio ? 'Generando portafolio...' : 'Descargar portafolio' }}
               </Button>
               <Button
                 class="h-14 rounded-md border-[#B9C7FF] bg-white px-8 text-base font-bold text-[#244DEB] hover:bg-blue-50"
                 variant="outline"
                 type="button"
+                @click="showVerifyModal = true; verificationCode = ''; verificationResult = null"
               >
                 <QrCode class="h-4 w-4" />
                 Verificar código
@@ -298,13 +370,138 @@ function issuedDate(course: Course, index: number) {
                 Agrupa tus constancias en un portafolio profesional para adjuntar en postulaciones.
               </p>
             </div>
-            <Button type="button">
-              <Download class="h-4 w-4" />
-              Descargar resumen
+            <Button 
+              type="button"
+              :disabled="isDownloadingPortfolio"
+              @click="handleDownloadPortfolio"
+            >
+              <Loader2 v-if="isDownloadingPortfolio" class="h-4 w-4 animate-spin mr-1.5" />
+              <Download v-else class="h-4 w-4" />
+              {{ isDownloadingPortfolio ? 'Generando...' : 'Descargar resumen' }}
             </Button>
           </CardContent>
         </Card>
       </section>
     </section>
+
+    <!-- Verification Modal -->
+    <div 
+      v-if="showVerifyModal" 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      @click.self="showVerifyModal = false"
+    >
+      <div class="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl transition-all">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 bg-[#F7F9FE] px-5 py-4">
+          <div class="flex items-center gap-2">
+            <QrCode class="h-5 w-5 text-[#0B3A78]" />
+            <h3 class="font-black text-[#07152B] text-sm">Verificador de Certificados</h3>
+          </div>
+          <button 
+            type="button"
+            class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            @click="showVerifyModal = false"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-5 space-y-4">
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Ingresa el código único de validación de Tukuy Academy (ejemplo: <strong>TA-2026-0008</strong> o <strong>TA-2026-010</strong>) para verificar su autenticidad.
+          </p>
+
+          <div class="flex gap-2">
+            <Input 
+              type="text" 
+              placeholder="Código de certificado (TA-2026-XXXX)" 
+              v-model="verificationCode"
+              class="h-11"
+              @keyup.enter="handleVerifyCode"
+            />
+            <Button 
+              class="bg-[#0B3A78] hover:bg-[#072a56] font-bold text-white px-4 shrink-0 h-11"
+              :disabled="isVerifying || !verificationCode.trim()"
+              @click="handleVerifyCode"
+            >
+              <Loader2 v-if="isVerifying" class="h-4 w-4 animate-spin" />
+              <span v-else>Verificar</span>
+            </Button>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="isVerifying" class="flex flex-col items-center justify-center py-6 gap-2">
+            <Loader2 class="h-8 w-8 animate-spin text-[#0B3A78]" />
+            <span class="text-xs font-bold text-[#0B3A78]">Consultando base de datos central...</span>
+          </div>
+
+          <!-- Verification Results -->
+          <div v-if="!isVerifying && verificationResult" class="mt-2 space-y-3">
+            <!-- Success state -->
+            <div 
+              v-if="verificationResult.success" 
+              class="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4 space-y-3"
+            >
+              <div class="flex items-start gap-2.5">
+                <CheckCircle2 class="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 class="text-xs font-bold text-emerald-800">Certificado Auténtico y Válido</h4>
+                  <p class="text-[10px] text-emerald-700 mt-0.5">La firma digital y registro corresponden a un documento emitido por Tukuy.</p>
+                </div>
+              </div>
+
+              <!-- Certificate Detail Box -->
+              <div class="rounded bg-white p-3 border border-emerald-100/60 space-y-2 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Estudiante:</span>
+                  <strong class="text-slate-900 font-bold">{{ portal.user.value?.name }}</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Programa:</span>
+                  <strong class="text-slate-900 font-bold text-right max-w-[200px] truncate">{{ verificationResult.certificate.title }}</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Código:</span>
+                  <strong class="text-slate-900 font-bold font-mono">{{ verificationResult.certificate.code }}</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Emisión:</span>
+                  <strong class="text-slate-900 font-bold">{{ verificationResult.certificate.issuedAt }}</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Duración:</span>
+                  <strong class="text-slate-900 font-bold">{{ verificationResult.certificate.duration }} ({{ verificationResult.certificate.mode }})</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Error state -->
+            <div 
+              v-else 
+              class="rounded-lg border border-red-100 bg-red-50/50 p-4 flex items-start gap-2.5"
+            >
+              <AlertTriangle class="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 class="text-xs font-bold text-red-800">Código no Encontrado</h4>
+                <p class="text-[11px] text-red-700 mt-0.5 leading-relaxed">{{ verificationResult.message }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="flex justify-end border-t border-slate-100 px-5 py-3.5 bg-[#F7F9FE]">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            class="h-9 border-slate-200 bg-white font-semibold text-slate-700"
+            @click="showVerifyModal = false"
+          >
+            Cerrar
+          </Button>
+        </div>
+      </div>
+    </div>
   </PortalSection>
 </template>

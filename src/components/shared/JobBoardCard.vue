@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays, MapPin, Sparkles } from 'lucide-vue-next'
+import { CalendarDays, Check, MapPin, Sparkles } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 import { Badge } from '@/components/ui/badge'
@@ -8,10 +8,17 @@ import { Card, CardContent } from '@/components/ui/card'
 import { isJobForYou } from '@/composables/useJobFilter'
 import type { Job } from '@/types/academy'
 
-const props = defineProps<{
-  job: Job
-  featured?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    job: Job
+    featured?: boolean
+    applied?: boolean
+  }>(),
+  {
+    featured: false,
+    applied: false,
+  },
+)
 
 const emit = defineEmits<{
   apply: []
@@ -53,7 +60,16 @@ const forYou = computed(() => isJobForYou(props.job))
         </div>
       </div>
 
-      <Button class="shrink-0" @click="emit('apply')">Postular ahora</Button>
+      <Button
+        v-if="applied"
+        variant="outline"
+        disabled
+        class="shrink-0 border-emerald-200 bg-emerald-50 text-emerald-700 disabled:opacity-100 flex items-center gap-1.5"
+      >
+        <Check class="h-4 w-4 text-emerald-600" />
+        Postulado
+      </Button>
+      <Button v-else class="shrink-0" @click="emit('apply')">Postular ahora</Button>
     </CardContent>
   </Card>
 </template>

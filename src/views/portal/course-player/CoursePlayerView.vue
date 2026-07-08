@@ -19,6 +19,7 @@ import {
   Star,
   Trophy,
   Upload,
+  X,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -233,8 +234,163 @@ const activeItem = computed<SyllabusItem>(() => {
 // Completed items array
 const completedItems = ref<string[]>([])
 
+// Quiz database and reactive states
+interface QuizQuestion {
+  question: string
+  options: string[]
+  correctIndex: number
+}
+
+const quizQuestionsDatabase: Record<string, QuizQuestion[]> = {
+  'q1.1': [
+    {
+      question: '¿Cuál es la función principal de Tukuy Obra en un proyecto de construcción?',
+      options: [
+        'Calcular los costos de licitación de manera automática.',
+        'Facilitar la comunicación en tiempo real y el control de avances entre el campo y la oficina técnica.',
+        'Reemplazar por completo el diseño de AutoCAD del proyecto.',
+        'Contratar operarios de forma directa.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Qué es una "partida de control diario" en la plataforma?',
+      options: [
+        'Una reunión semanal de ingenieros.',
+        'La unidad de avance operativo que se reporta desde el frente de trabajo.',
+        'El reporte contable consolidado de fin de año.',
+        'Un documento impreso firmado por el cliente.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Quiénes ingresan el avance diario en la plataforma desde el campo?',
+      options: [
+        'El equipo de contabilidad corporativo.',
+        'El personal de supervisión o ingenieros de producción asignados al frente.',
+        'Únicamente el gerente general del proyecto.',
+        'El cliente final desde su domicilio.'
+      ],
+      correctIndex: 1
+    }
+  ],
+  'q2.1': [
+    {
+      question: '¿Cuál es el primer paso recomendado para configurar un proyecto en Tukuy?',
+      options: [
+        'Cargar el presupuesto base y estructurar el árbol de partidas.',
+        'Invitar a todos los contratistas externos sin asignar roles.',
+        'Generar el PDF de cierre de obra.',
+        'Exportar el reporte mensual.'
+      ],
+      correctIndex: 0
+    },
+    {
+      question: 'Al relacionar partidas, ¿por qué es importante usar unidades de medida oficiales?',
+      options: [
+        'No es importante, se puede escribir cualquier texto libre.',
+        'Para asegurar la consistencia en los reportes de metrados y evitar discrepancias de cálculo.',
+        'Para cumplir con las normas de diseño arquitectónico.',
+        'Para cambiar el formato del logo de la empresa.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Qué ventaja tiene reportar avances desde dispositivos móviles en el frente de trabajo?',
+      options: [
+        'Permite a los supervisores jugar videojuegos en obra.',
+        'Elimina el papeleo y captura el avance en el momento exacto, acelerando la toma de decisiones.',
+        'Aumenta el consumo de datos de forma innecesaria.',
+        'Evita que se realicen las reuniones físicas.'
+      ],
+      correctIndex: 1
+    }
+  ],
+  'q3.1': [
+    {
+      question: '¿Qué se debe hacer si se detecta una alerta de discrepancia en los metrados reportados?',
+      options: [
+        'Ignorar la alerta y proceder a valorizar directamente.',
+        'Conciliar el reporte diario confrontándolo con la planilla física y los planos del frente.',
+        'Eliminar todo el historial de la base de datos.',
+        'Reiniciar el servidor del software.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Cuál es un error común al ingresar información de insumos y equipos diario?',
+      options: [
+        'Usar el sistema en español.',
+        'Duplicar el registro de operarios o meter un código erróneo de maquinaria.',
+        'Reportar antes del mediodía.',
+        'Escribir notas de felicitación.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Para qué sirve el panel de alertas de control de calidad?',
+      options: [
+        'Para enviar correos de marketing.',
+        'Para detectar desviaciones críticas de avance y consumo antes de que afecten el presupuesto final.',
+        'Para cambiar la contraseña del usuario.',
+        'Para ver el pronóstico del clima.'
+      ],
+      correctIndex: 1
+    }
+  ],
+  'q4.1': [
+    {
+      question: '¿Cómo ayuda la metodología de reporte dinámico de Tukuy a la oficina técnica?',
+      options: [
+        'Automatiza la redacción de correos electrónicos de los ingenieros.',
+        'Provee una sola fuente de verdad verificable que agiliza la aprobación de valorizaciones mensuales.',
+        'Evita que los ingenieros tengan que ir a la obra físicamente.',
+        'Reduce el costo de los materiales de acero.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Qué nota mínima se requiere en la evaluación final para simular la obtención del certificado?',
+      options: [
+        '11 sobre 20.',
+        '14 sobre 20.',
+        '18 sobre 20.',
+        '20 sobre 20.'
+      ],
+      correctIndex: 1
+    },
+    {
+      question: '¿Cuál es el flujo ideal para una conciliación de fin de mes exitosa?',
+      options: [
+        'Reporte de campo -> Verificación en oficina técnica -> Generación de reporte consolidado sin discrepancias.',
+        'Ignorar datos de campo y usar valores estimados.',
+        'Generar valorizaciones al azar.',
+        'Esperar que el cliente calcule los montos por su cuenta.'
+      ],
+      correctIndex: 0
+    }
+  ]
+}
+
+const selectedAnswers = ref<Record<number, number>>({})
+const quizResult = ref<{ score: number; passed: boolean; submitted: boolean } | null>(null)
+const userGrades = ref<Record<string, number>>({})
+
 // Sync local completed state when course/route changes or loads
 function syncLocalProgress() {
+  const savedGrades = localStorage.getItem('tukuy_academy_grades')
+  if (savedGrades) {
+    userGrades.value = JSON.parse(savedGrades)
+  } else {
+    userGrades.value = {
+      'q1.1': 18,
+      'q2.1': 17,
+      'q3.1': 16,
+      'q4.1': 19,
+      'a4.1': 18,
+    }
+  }
+
   if (course.value) {
     const totalCount = syllabusSections.reduce((sum, s) => sum + s.items.length, 0)
     const count = Math.round((course.value.progress / 100) * totalCount)
@@ -245,6 +401,18 @@ function syncLocalProgress() {
     completedItems.value = allItems.slice(0, count)
   } else {
     completedItems.value = []
+  }
+
+  // Also initialize active item's quiz result if completed
+  if (completedItems.value.includes(activeItemId.value)) {
+    const savedGrade = userGrades.value[activeItemId.value] ?? 18
+    quizResult.value = {
+      score: savedGrade,
+      passed: savedGrade >= 14,
+      submitted: true
+    }
+  } else {
+    quizResult.value = null
   }
 }
 
@@ -265,7 +433,12 @@ const progressPercent = computed(() => {
 const gradedActivities = computed(() => {
   return syllabusSections
     .flatMap((s) => s.items)
-    .filter((item) => completedItems.value.includes(item.id) && item.grade !== undefined)
+    .filter((item) => completedItems.value.includes(item.id))
+    .map((item) => ({
+      ...item,
+      grade: userGrades.value[item.id] ?? item.grade
+    }))
+    .filter((item) => item.grade !== undefined)
 })
 
 const averageGrade = computed(() => {
@@ -317,15 +490,54 @@ function triggerUpdate() {
   }
 }
 
+function submitQuiz(itemId: string) {
+  const questions = quizQuestionsDatabase[itemId]
+  if (!questions) return
+  
+  let correctCount = 0
+  questions.forEach((q, idx) => {
+    if (selectedAnswers.value[idx] === q.correctIndex) {
+      correctCount++
+    }
+  })
+  
+  const score = Math.round((correctCount / questions.length) * 20)
+  const passed = score >= 14
+  
+  quizResult.value = {
+    score,
+    passed,
+    submitted: true
+  }
+  
+  userGrades.value[itemId] = score
+  localStorage.setItem('tukuy_academy_grades', JSON.stringify(userGrades.value))
+  
+  if (passed && !completedItems.value.includes(itemId)) {
+    completedItems.value.push(itemId)
+  }
+  
+  triggerUpdate()
+}
+
 function simulateQuickComplete() {
   const all: string[] = []
   syllabusSections.forEach((s) => s.items.forEach((i) => all.push(i.id)))
   completedItems.value = all
+  
+  Object.keys(quizQuestionsDatabase).forEach((quizId) => {
+    userGrades.value[quizId] = 20
+  })
+  userGrades.value['a4.1'] = 20
+  localStorage.setItem('tukuy_academy_grades', JSON.stringify(userGrades.value))
+  
   triggerUpdate()
 }
 
 function simulateReset() {
   completedItems.value = []
+  userGrades.value = {}
+  localStorage.removeItem('tukuy_academy_grades')
   triggerUpdate()
 }
 
@@ -353,8 +565,19 @@ function toggleSection(sectionId: string) {
 
 function selectItem(itemId: string) {
   activeItemId.value = itemId
-  // On mobile, close sidebar after selecting an item
   sidebarOpen.value = false
+  
+  selectedAnswers.value = {}
+  quizResult.value = null
+  
+  if (completedItems.value.includes(itemId)) {
+    const savedGrade = userGrades.value[itemId] ?? 18
+    quizResult.value = {
+      score: savedGrade,
+      passed: savedGrade >= 14,
+      submitted: true
+    }
+  }
 }
 
 // Helper to determine icon for each item type
@@ -473,30 +696,128 @@ function getItemIcon(type: SyllabusItem['type']) {
 
           <!-- Quiz State -->
           <template v-else-if="activeItem.type === 'quiz'">
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center p-6 bg-slate-900 text-white">
-              <div class="rounded-full bg-amber-500/10 p-4 ring-4 ring-amber-500/20">
-                <HelpCircle class="h-8 w-8 text-amber-400" />
-              </div>
-              <div class="space-y-1.5">
-                <span class="text-xs font-bold text-amber-400 tracking-wider uppercase">Actividad: Cuestionario de evaluación</span>
-                <h3 class="text-lg font-bold text-white max-w-xl mx-auto">
-                  {{ activeItem.title }}
-                </h3>
-              </div>
-              <p class="max-w-md text-xs text-slate-300">
-                Esta evaluación consta de <strong>{{ activeItem.questions || 5 }} preguntas</strong> basadas en los videos del módulo.
-              </p>
+            <!-- When NOT submitted -->
+            <div 
+              v-if="!quizResult || !quizResult.submitted" 
+              class="absolute inset-0 flex flex-col bg-slate-900 text-white p-6 overflow-y-auto"
+            >
+              <div class="max-w-2xl mx-auto w-full space-y-5 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="rounded-full bg-amber-500/10 p-2.5">
+                    <HelpCircle class="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <span class="text-[10px] font-bold text-amber-400 tracking-wider uppercase">Evaluación interactiva</span>
+                    <h3 class="text-base font-bold text-white leading-snug">{{ activeItem.title }}</h3>
+                  </div>
+                </div>
+                
+                <p class="text-xs text-slate-300 leading-relaxed border-b border-slate-800 pb-4">
+                  Responde las siguientes preguntas de opción múltiple basadas en el material de este módulo. Se requiere una nota mínima aprobatoria de <strong>14/20</strong> para completar esta lección.
+                </p>
 
-              <div class="mt-4 flex gap-3">
-                <Button
-                  size="sm"
-                  :class="completedItems.includes(activeItem.id) ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-amber-600 hover:bg-amber-500'"
-                  class="text-white font-semibold"
-                  @click="toggleItem(activeItem.id)"
-                >
-                  <CheckCircle2 class="mr-1.5 h-4 w-4" />
-                  {{ completedItems.includes(activeItem.id) ? 'Cuestionario Completado (Calificación: ' + activeItem.grade + '/20)' : 'Marcar como Completado' }}
-                </Button>
+                <!-- Questions List -->
+                <div v-if="quizQuestionsDatabase[activeItem.id]" class="space-y-6">
+                  <div 
+                    v-for="(q, qIdx) in quizQuestionsDatabase[activeItem.id]" 
+                    :key="qIdx"
+                    class="space-y-2.5 bg-slate-950/40 p-4 rounded-lg border border-slate-800"
+                  >
+                    <h4 class="text-xs font-bold text-slate-200">
+                      {{ qIdx + 1 }}. {{ q.question }}
+                    </h4>
+                    <div class="grid gap-2">
+                      <label 
+                        v-for="(opt, oIdx) in q.options" 
+                        :key="oIdx"
+                        class="flex items-start gap-3 rounded-md p-2.5 text-xs cursor-pointer border transition-all"
+                        :class="selectedAnswers[qIdx] === oIdx 
+                          ? 'bg-[#0B3A78]/30 border-[#0B3A78] text-white font-medium' 
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800/50'"
+                      >
+                        <input 
+                          type="radio" 
+                          :name="'q-' + qIdx" 
+                          :value="oIdx" 
+                          v-model="selectedAnswers[qIdx]"
+                          class="mt-0.5 accent-blue-500 shrink-0" 
+                        />
+                        <span>{{ opt }}</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                  <Button 
+                    size="sm" 
+                    class="bg-amber-600 hover:bg-amber-500 font-bold text-white px-6 py-2.5 h-10"
+                    :disabled="Object.keys(selectedAnswers).length < (quizQuestionsDatabase[activeItem.id]?.length || 0)"
+                    @click="submitQuiz(activeItem.id)"
+                  >
+                    Enviar y Calificar cuestionario
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <!-- When Submitted (Results screen) -->
+            <div 
+              v-else 
+              class="absolute inset-0 flex flex-col items-center justify-center p-6 bg-slate-900 text-white text-center"
+            >
+              <div class="max-w-md mx-auto space-y-6">
+                <!-- Result icon -->
+                <div class="flex justify-center">
+                  <div 
+                    class="rounded-full p-5 ring-8"
+                    :class="quizResult.passed ? 'bg-emerald-500/10 ring-emerald-500/15 text-emerald-400' : 'bg-red-500/10 ring-red-500/15 text-red-400'"
+                  >
+                    <CheckCircle2 v-if="quizResult.passed" class="h-10 w-10 text-emerald-400" />
+                    <X v-else class="h-10 w-10 text-red-400" />
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <span class="text-xs font-bold tracking-wider uppercase" :class="quizResult.passed ? 'text-emerald-400' : 'text-red-400'">
+                    {{ quizResult.passed ? '¡Cuestionario Aprobado!' : 'Cuestionario Desaprobado' }}
+                  </span>
+                  <h3 class="text-lg font-bold text-white">
+                    {{ activeItem.title }}
+                  </h3>
+                </div>
+
+                <!-- Score indicator -->
+                <div class="bg-slate-950/50 rounded-xl p-4 border border-slate-800 max-w-xs mx-auto">
+                  <p class="text-xs text-slate-400 uppercase font-bold tracking-wide">Calificación obtenida</p>
+                  <strong class="text-4xl font-black block mt-1" :class="quizResult.passed ? 'text-emerald-400' : 'text-red-400'">
+                    {{ quizResult.score }} / 20
+                  </strong>
+                  <p class="text-[10px] text-slate-500 mt-1">
+                    {{ quizResult.passed ? 'Nota aprobada para acreditación.' : 'Requiere un mínimo de 14 para aprobar.' }}
+                  </p>
+                </div>
+
+                <div class="flex justify-center gap-3 pt-2">
+                  <Button 
+                    v-if="!quizResult.passed"
+                    size="sm" 
+                    class="bg-amber-600 hover:bg-amber-500 font-bold text-white px-5"
+                    @click="quizResult = null; selectedAnswers = {}"
+                  >
+                    <RefreshCw class="mr-1.5 h-3.5 w-3.5" />
+                    Intentar de nuevo
+                  </Button>
+                  <Button 
+                    v-else
+                    size="sm" 
+                    variant="outline"
+                    class="border-slate-700 bg-slate-800 text-white hover:bg-slate-700"
+                    @click="quizResult = null; selectedAnswers = {}"
+                  >
+                    Ver mis respuestas
+                  </Button>
+                </div>
               </div>
             </div>
           </template>
