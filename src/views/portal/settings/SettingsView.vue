@@ -30,6 +30,15 @@ const portal = usePortalContext()
 // Simulated form state
 const email = ref('carlos.quispe@email.com')
 const phone = ref('+51 987 654 321')
+const birthDate = ref(portal.user.value?.birthDate ?? '1995-04-12')
+
+function saveBirthDate() {
+  if (portal.updateUserProfile) {
+    portal.updateUserProfile({ birthDate: birthDate.value })
+  }
+  simulateSave('Fecha de nacimiento')
+}
+
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -150,6 +159,32 @@ function simulateSave(section: string) {
               <div class="flex justify-end">
                 <Button size="sm" @click="simulateSave('Teléfono')">
                   Guardar teléfono
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Birth Date -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2 text-lg">
+                <UserRound class="h-5 w-5 text-primary" />
+                Fecha de nacimiento
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="grid gap-4">
+              <div>
+                <label class="mb-1.5 block text-xs font-semibold uppercase text-muted-foreground" for="settings-birthdate">
+                  Fecha de nacimiento
+                </label>
+                <Input id="settings-birthdate" v-model="birthDate" type="date" class="h-11" />
+                <p class="mt-1.5 text-xs text-muted-foreground">
+                  Se utiliza para validar tu edad laboral en los perfiles de postulación.
+                </p>
+              </div>
+              <div class="flex justify-end">
+                <Button size="sm" @click="saveBirthDate">
+                  Guardar fecha de nacimiento
                 </Button>
               </div>
             </CardContent>

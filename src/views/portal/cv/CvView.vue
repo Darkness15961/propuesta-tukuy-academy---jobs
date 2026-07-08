@@ -20,9 +20,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { useRouter } from 'vue-router'
 import { usePortalContext } from '../composables/usePortalContext'
 
 const portal = usePortalContext()
+const router = useRouter()
 
 const metrics = computed(() => [
   {
@@ -140,7 +142,11 @@ const recommendedCourses = computed(() =>
             </div>
 
             <div class="flex flex-wrap gap-3">
-              <Button class="h-14 rounded-md bg-[#244DEB] px-8 text-base font-bold text-white shadow-sm hover:bg-[#173FD0]" type="button">
+              <Button
+                class="h-14 rounded-md bg-[#244DEB] px-8 text-base font-bold text-white shadow-sm hover:bg-[#173FD0]"
+                type="button"
+                @click="router.push('/tukuy-academy/cv/editor')"
+              >
                 Crear mi CV
               </Button>
               <Button
@@ -282,7 +288,7 @@ const recommendedCourses = computed(() =>
                     </p>
                   </div>
                   <div class="flex shrink-0 flex-wrap gap-2">
-                    <Button size="sm" variant="outline" type="button">
+                    <Button size="sm" variant="outline" type="button" @click="router.push('/tukuy-academy/cv/editor')">
                       <Pencil class="h-4 w-4" />
                       Editar
                     </Button>

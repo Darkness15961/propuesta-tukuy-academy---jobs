@@ -40,6 +40,7 @@ export type PortalContext = {
   handleViewCertificate: (course: Course) => Promise<void>
   handleDownloadCertificate: (course: Course) => Promise<void>
   openCourseSimulator: (course: Course) => void
+  updateUserProfile?: (updates: Partial<UserProfile>) => void
 }
 
 const portalContextKey: InjectionKey<PortalContext> = Symbol('portal-context')

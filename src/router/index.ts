@@ -75,6 +75,12 @@ const router = createRouter({
           meta: { requiresAuth: true, view: 'cv' },
         },
         {
+          path: 'cv/editor',
+          name: 'portal-cv-editor',
+          component: () => import('@/views/portal/cv/CvEditorView.vue'),
+          meta: { requiresAuth: true, view: 'cv' },
+        },
+        {
           path: 'certificados',
           name: 'portal-certificates',
           component: () => import('@/views/portal/certificates/CertificatesView.vue'),

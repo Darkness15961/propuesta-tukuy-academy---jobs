@@ -56,9 +56,19 @@ const profileStats = computed(() => [
   },
 ])
 
+function formatDate(dateStr?: string) {
+  if (!dateStr) return '-'
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+  return dateStr
+}
+
 const profileDetails = computed(() => [
   { label: 'Oficio', value: portal.user.value?.trade ?? '-' },
   { label: 'Especialidad', value: portal.user.value?.specialty ?? '-' },
+  { label: 'Fecha de nacimiento', value: formatDate(portal.user.value?.birthDate) },
   { label: 'Ubicación', value: portal.user.value?.location ?? '-' },
   { label: 'Disponibilidad', value: 'Inmediata' },
   { label: 'Pretensión', value: 'S/ 1,800' },

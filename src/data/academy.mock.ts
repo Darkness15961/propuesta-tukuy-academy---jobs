@@ -28,6 +28,7 @@ export const user: UserProfile = {
   employabilityScore: 76,
   certificates: 3,
   applications: 4,
+  birthDate: '1995-04-12',
 }
 
 export const heroImage =

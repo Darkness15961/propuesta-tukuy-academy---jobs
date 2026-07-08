@@ -128,6 +128,12 @@ function openCourseSimulator(course: Course) {
   router.push(`/tukuy-academy/aprendizaje/${course.id}`)
 }
 
+function updateUserProfile(updates: Partial<any>) {
+  if (user.value) {
+    user.value = { ...user.value, ...updates }
+  }
+}
+
 function updateCourseProgress(courseId: string, progress: number, status: Course['status']) {
   const course = courses.value.find((c) => c.id === courseId)
   if (course) {
@@ -185,6 +191,7 @@ const portalContext = {
   handleViewCertificate,
   handleDownloadCertificate,
   openCourseSimulator,
+  updateUserProfile,
 }
 
 providePortalContext(portalContext)

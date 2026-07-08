@@ -70,6 +70,7 @@ export type UserProfile = {
   employabilityScore: number
   certificates: number
   applications: number
+  birthDate?: string
 }
 
 export type CarouselSlide = {
