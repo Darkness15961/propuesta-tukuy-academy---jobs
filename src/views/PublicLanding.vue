@@ -159,7 +159,7 @@ function scrollToSection(id: string) {
           <template v-else>
             <div class="relative overflow-hidden rounded-lg border border-white/15 bg-white/10 shadow-2xl backdrop-blur">
               <div class="flex animate-[academy-slide_30s_ease-in-out_infinite]">
-                <article v-for="slide in carouselSlides" :key="slide.title" class="relative min-h-[440px] min-w-full overflow-hidden">
+                <article v-for="slide in carouselSlides" :key="slide.title" class="relative min-h-[520px] min-w-full overflow-hidden">
                   <img :src="slide.image" :alt="slide.title" class="absolute inset-0 h-full w-full object-cover" />
                   <div class="absolute inset-0 bg-gradient-to-t from-slate-950/92 via-slate-950/28 to-transparent" />
                   <div class="absolute inset-x-0 bottom-0 grid gap-3 p-6">

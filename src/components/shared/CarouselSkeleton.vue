@@ -8,7 +8,7 @@ withDefaults(defineProps<{ variant?: 'light' | 'dark' }>(), { variant: 'light' }
 <template>
   <div class="grid gap-4">
     <Skeleton
-      :class="cn('min-h-[440px] w-full rounded-lg', variant === 'dark' && 'bg-white/10')"
+      :class="cn('min-h-[520px] w-full rounded-lg', variant === 'dark' && 'bg-white/10')"
     />
     <div class="grid grid-cols-3 gap-2">
       <Skeleton
